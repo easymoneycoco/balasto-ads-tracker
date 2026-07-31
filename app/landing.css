@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
+
+.blp, .blp * { box-sizing: border-box; }
+.blp {
+  font-family: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  background: radial-gradient(120% 90% at 50% 0%, #1A2C49 0%, #14233F 45%, #0C1626 100%);
+  color: #FCFAF4;
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 20px 36px;
+  -webkit-font-smoothing: antialiased;
+}
+.blp a { text-decoration: none; }
+.blp-card { width: 100%; max-width: 440px; text-align: center; }
+.blp-logo { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 30px; }
+.blp-logo svg { width: 28px; height: 28px; display: block; }
+.blp-logo img { height: 28px !important; width: auto !important; max-height: 28px; display: block; }
+.blp-h1 {
+  font-family: 'Newsreader', Georgia, 'Times New Roman', serif;
+  font-weight: 600; font-size: clamp(30px, 8.5vw, 40px); line-height: 1.14;
+  letter-spacing: -0.02em; margin: 0 0 16px; color: #FCFAF4;
+}
+.blp-h1 .blp-hl { color: #EAA956; }
+.blp-sub {
+  font-size: clamp(16px, 4.4vw, 18px); line-height: 1.55; color: #C7D0DE;
+  margin: 0 auto 26px; max-width: 380px;
+}
+.blp-lead { font-size: 14px; color: #A6B6D1; margin: 0 0 14px; }
+.blp-cta {
+  display: flex; align-items: center; justify-content: center; gap: 11px;
+  background: #25D366; color: #062E16;
+  font-weight: 800; font-size: clamp(16px, 4.6vw, 18px);
+  padding: 17px 22px; border-radius: 12px;
+  box-shadow: 0 10px 26px rgba(37,211,102,0.34);
+  transition: transform .12s ease, box-shadow .18s ease, background .18s ease;
+}
+.blp-cta:hover { background: #2BE874; box-shadow: 0 12px 30px rgba(37,211,102,0.42); }
+.blp-cta:active { transform: translateY(1px) scale(0.995); }
+.blp-cta svg { width: 23px; height: 23px; flex-shrink: 0; }
+.blp-cta-note { font-size: 13px; color: #7388B0; margin-top: 12px; }
+.blp-points {
+  display: flex; justify-content: center; flex-wrap: wrap; gap: 8px 18px;
+  margin-top: 26px; font-size: 13.5px; color: #C7D0DE; font-weight: 600;
+}
+.blp-points span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.blp-points svg { width: 15px; height: 15px; flex-shrink: 0; }
+.blp-footer {
+  margin-top: 32px; display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12.5px; color: #46639A;
+}
+.blp-footer svg { width: 14px; height: 14px; opacity: 0.8; }
