@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 type PorFuente = {
@@ -97,12 +98,17 @@ export default function DashboardPage() {
       <div className="mx-auto max-w-6xl space-y-8">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-bold">Dashboard de tráfico</h1>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="rounded-lg bg-green-500 px-4 py-2 font-semibold text-white hover:bg-green-400"
-          >
-            + Registrar gasto
-          </button>
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard/links" className="text-sm text-blue-400 hover:text-blue-300">
+              Ver links por canal
+            </Link>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="rounded-lg bg-green-500 px-4 py-2 font-semibold text-white hover:bg-green-400"
+            >
+              + Registrar gasto
+            </button>
+          </div>
         </header>
 
         <section className="flex flex-wrap items-end gap-4 rounded-lg bg-slate-900 p-4">
