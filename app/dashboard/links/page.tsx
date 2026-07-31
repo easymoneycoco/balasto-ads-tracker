@@ -2,17 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-const CHANNELS = [
-  { name: "Meta Ads", utmSource: "facebook", utmMedium: "paid" },
-  { name: "Grupos de Facebook", utmSource: "facebook", utmMedium: "group" },
-  { name: "Comentarios de Facebook", utmSource: "facebook", utmMedium: "comment" },
-  { name: "Facebook orgánico", utmSource: "facebook", utmMedium: "organic" },
-  { name: "Instagram orgánico", utmSource: "instagram", utmMedium: "organic" },
-  { name: "LinkedIn Ads", utmSource: "linkedin", utmMedium: "paid" },
-  { name: "LinkedIn orgánico", utmSource: "linkedin", utmMedium: "organic" },
-  { name: "Comentarios de LinkedIn", utmSource: "linkedin", utmMedium: "comment" },
-] as const;
+import { CHANNELS } from "@/lib/channels";
 
 export default function LinksPage() {
   const [origin, setOrigin] = useState<string | null>(null);
@@ -67,7 +57,7 @@ export default function LinksPage() {
 
                 return (
                   <tr key={key} className="border-b border-slate-800/60">
-                    <td className="px-4 py-3 font-medium">{channel.name}</td>
+                    <td className="px-4 py-3 font-medium">{channel.label}</td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-300">
                       {url ?? "Cargando…"}
                     </td>

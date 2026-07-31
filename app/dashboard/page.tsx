@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 type PorFuente = {
+  label: string | null;
   utmSource: string | null;
   utmMedium: string | null;
   landingViews: number;
   whatsappClicks: number;
   conversionRate: number | null;
-  fechaMin: string;
-  fechaMax: string;
+  fechaMin: string | null;
+  fechaMax: string | null;
   gastoTotal: number | null;
   cpcPorVisita: number | null;
   cpcPorClickWhatsapp: number | null;
@@ -79,18 +80,11 @@ export default function DashboardPage() {
 
   const combos = useMemo(() => {
     if (!data) return [];
-    const seen = new Set<string>();
     return data.porFuente
       .filter((row): row is PorFuente & { utmSource: string; utmMedium: string } =>
         Boolean(row.utmSource && row.utmMedium)
       )
-      .filter((row) => {
-        const key = `${row.utmSource}|${row.utmMedium}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .map((row) => ({ utmSource: row.utmSource, utmMedium: row.utmMedium }));
+      .map((row) => ({ label: row.label, utmSource: row.utmSource, utmMedium: row.utmMedium }));
   }, [data]);
 
   return (
@@ -164,8 +158,7 @@ export default function DashboardPage() {
               <table className="min-w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-800 text-slate-400">
-                    <th className="px-4 py-3">Fuente</th>
-                    <th className="px-4 py-3">Medio</th>
+                    <th className="px-4 py-3">Canal</th>
                     <th className="px-4 py-3">Rango de fechas</th>
                     <th className="px-4 py-3 text-right">Vistas</th>
                     <th className="px-4 py-3 text-right">Clicks WA</th>
@@ -181,8 +174,20 @@ export default function DashboardPage() {
                       key={`${row.utmSource}-${row.utmMedium}`}
                       className="border-b border-slate-800/60"
                     >
-                      <td className="px-4 py-3">{row.utmSource ?? "—"}</td>
-                      <td className="px-4 py-3">{row.utmMedium ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        {row.label ? (
+                          <>
+                            <div className="font-semibold">{row.label}</div>
+                            <div className="text-xs text-slate-500">
+                              {row.utmSource ?? "—"} / {row.utmMedium ?? "—"}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="font-semibold text-slate-300">
+                            {row.utmSource ?? "—"} / {row.utmMedium ?? "—"}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-slate-400">
                         {formatDate(row.fechaMin)} — {formatDate(row.fechaMax)}
                       </td>
@@ -194,13 +199,6 @@ export default function DashboardPage() {
                       <td className="px-4 py-3 text-right">{formatMoney(row.cpcPorClickWhatsapp)}</td>
                     </tr>
                   ))}
-                  {data.porFuente.length === 0 && (
-                    <tr>
-                      <td colSpan={9} className="px-4 py-6 text-center text-slate-500">
-                        Sin datos para el rango seleccionado.
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </section>
@@ -236,7 +234,7 @@ function SpendModal({
   onClose,
   onSaved,
 }: {
-  combos: { utmSource: string; utmMedium: string }[];
+  combos: { label: string | null; utmSource: string; utmMedium: string }[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -317,7 +315,7 @@ function SpendModal({
                   key={`${combo.utmSource}|${combo.utmMedium}`}
                   value={`${combo.utmSource}|${combo.utmMedium}`}
                 >
-                  {combo.utmSource} / {combo.utmMedium}
+                  {combo.label ?? `${combo.utmSource} / ${combo.utmMedium}`}
                 </option>
               ))}
               <option value="__custom__">Otra combinación…</option>

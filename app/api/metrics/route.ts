@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
+import { CHANNELS } from "@/lib/channels";
 
 function parseDate(value: string | null): string | null {
   if (!value) return null;
@@ -67,32 +68,57 @@ export async function GET(request: NextRequest) {
       [from, to]
     );
 
-    const spendMap = new Map<string, number>();
-    for (const row of spendResult.rows) {
-      spendMap.set(`${row.utm_source}|${row.utm_medium}`, Number(row.total));
+    function channelKey(source: string | null, medium: string | null): string {
+      return JSON.stringify([source, medium]);
     }
 
-    const porFuente = porFuenteResult.rows.map((row) => {
-      const views = Number(row.landing_views);
-      const clicks = Number(row.whatsapp_clicks);
-      const gastoTotal =
-        row.utm_source && row.utm_medium
-          ? spendMap.get(`${row.utm_source}|${row.utm_medium}`) ?? null
-          : null;
+    const eventMap = new Map<
+      string,
+      { views: number; clicks: number; fechaMin: string; fechaMax: string }
+    >();
+    for (const row of porFuenteResult.rows) {
+      eventMap.set(channelKey(row.utm_source, row.utm_medium), {
+        views: Number(row.landing_views),
+        clicks: Number(row.whatsapp_clicks),
+        fechaMin: row.fecha_min,
+        fechaMax: row.fecha_max,
+      });
+    }
+
+    const spendMap = new Map<string, number>();
+    for (const row of spendResult.rows) {
+      spendMap.set(channelKey(row.utm_source, row.utm_medium), Number(row.total));
+    }
+
+    function buildRow(label: string | null, utmSource: string | null, utmMedium: string | null) {
+      const stats = eventMap.get(channelKey(utmSource, utmMedium));
+      const views = stats?.views ?? 0;
+      const clicks = stats?.clicks ?? 0;
+      const gastoTotal = spendMap.get(channelKey(utmSource, utmMedium)) ?? null;
 
       return {
-        utmSource: row.utm_source,
-        utmMedium: row.utm_medium,
+        label,
+        utmSource,
+        utmMedium,
         landingViews: views,
         whatsappClicks: clicks,
         conversionRate: views > 0 ? clicks / views : null,
-        fechaMin: row.fecha_min,
-        fechaMax: row.fecha_max,
+        fechaMin: stats?.fechaMin ?? null,
+        fechaMax: stats?.fechaMax ?? null,
         gastoTotal,
         cpcPorVisita: gastoTotal !== null && views > 0 ? gastoTotal / views : null,
         cpcPorClickWhatsapp: gastoTotal !== null && clicks > 0 ? gastoTotal / clicks : null,
       };
-    });
+    }
+
+    const fixedKeys = new Set(CHANNELS.map((c) => channelKey(c.utmSource, c.utmMedium)));
+
+    const porFuente = [
+      ...CHANNELS.map((channel) => buildRow(channel.label, channel.utmSource, channel.utmMedium)),
+      ...porFuenteResult.rows
+        .filter((row) => !fixedKeys.has(channelKey(row.utm_source, row.utm_medium)))
+        .map((row) => buildRow(null, row.utm_source, row.utm_medium)),
+    ];
 
     const serieResult = await pool.query<{
       fecha: string;
