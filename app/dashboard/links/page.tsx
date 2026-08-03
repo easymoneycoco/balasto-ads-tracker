@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CHANNELS } from "@/lib/channels";
+import { CAMPAIGNS } from "@/lib/campaigns";
 
 export default function LinksPage() {
   const [origin, setOrigin] = useState<string | null>(null);
@@ -12,6 +13,21 @@ export default function LinksPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setOrigin(process.env.NEXT_PUBLIC_SITE_URL || window.location.origin);
   }, []);
+
+  const rows = [
+    ...CHANNELS.map((channel) => ({
+      key: `${channel.utmSource}-${channel.utmMedium}`,
+      label: channel.label,
+      url: origin
+        ? `${origin}/?utm_source=${channel.utmSource}&utm_medium=${channel.utmMedium}`
+        : null,
+    })),
+    ...CAMPAIGNS.map((campaign) => ({
+      key: `meta-${campaign.utmCampaign}`,
+      label: `Meta Ads – ${campaign.label}`,
+      url: origin ? `${origin}/${campaign.utmCampaign}` : null,
+    })),
+  ];
 
   async function handleCopy(url: string, key: string) {
     try {
@@ -49,30 +65,23 @@ export default function LinksPage() {
               </tr>
             </thead>
             <tbody>
-              {CHANNELS.map((channel) => {
-                const key = `${channel.utmSource}-${channel.utmMedium}`;
-                const url = origin
-                  ? `${origin}/?utm_source=${channel.utmSource}&utm_medium=${channel.utmMedium}`
-                  : null;
-
-                return (
-                  <tr key={key} className="border-b border-slate-800/60">
-                    <td className="px-4 py-3 font-medium">{channel.label}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-300">
-                      {url ?? "Cargando…"}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => url && handleCopy(url, key)}
-                        disabled={!url}
-                        className="rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold hover:bg-blue-500 disabled:opacity-50"
-                      >
-                        {copiedKey === key ? "¡Copiado!" : "Copiar"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {rows.map((row) => (
+                <tr key={row.key} className="border-b border-slate-800/60">
+                  <td className="px-4 py-3 font-medium">{row.label}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-300">
+                    {row.url ?? "Cargando…"}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => row.url && handleCopy(row.url, row.key)}
+                      disabled={!row.url}
+                      className="rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold hover:bg-blue-500 disabled:opacity-50"
+                    >
+                      {copiedKey === row.key ? "¡Copiado!" : "Copiar"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

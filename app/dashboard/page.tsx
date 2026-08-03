@@ -17,6 +17,19 @@ type PorFuente = {
   cpcPorClickWhatsapp: number | null;
 };
 
+type PorCampaña = {
+  label: string;
+  utmCampaign: string;
+  landingViews: number;
+  whatsappClicks: number;
+  conversionRate: number | null;
+  fechaMin: string | null;
+  fechaMax: string | null;
+  gastoTotal: number | null;
+  cpcPorVisita: number | null;
+  cpcPorClickWhatsapp: number | null;
+};
+
 type MetricsResponse = {
   totales: {
     landingViews: number;
@@ -24,6 +37,7 @@ type MetricsResponse = {
     conversionRate: number | null;
   };
   porFuente: PorFuente[];
+  porCampaña: PorCampaña[];
   serieDiaria: { fecha: string; landingViews: number; whatsappClicks: number }[];
 };
 
@@ -202,6 +216,42 @@ export default function DashboardPage() {
                 </tbody>
               </table>
             </section>
+
+            <section className="overflow-x-auto rounded-lg bg-slate-900">
+              <h2 className="border-b border-slate-800 px-4 py-3 text-lg font-bold">
+                Comparación de campañas Meta Ads
+              </h2>
+              <table className="min-w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400">
+                    <th className="px-4 py-3">Campaña</th>
+                    <th className="px-4 py-3">Rango de fechas</th>
+                    <th className="px-4 py-3 text-right">Vistas</th>
+                    <th className="px-4 py-3 text-right">Clicks WA</th>
+                    <th className="px-4 py-3 text-right">Conversión</th>
+                    <th className="px-4 py-3 text-right">Gasto</th>
+                    <th className="px-4 py-3 text-right">CPC / visita</th>
+                    <th className="px-4 py-3 text-right">CPC / click WA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.porCampaña.map((row) => (
+                    <tr key={row.utmCampaign} className="border-b border-slate-800/60">
+                      <td className="px-4 py-3 font-semibold">{row.label}</td>
+                      <td className="px-4 py-3 text-slate-400">
+                        {formatDate(row.fechaMin)} — {formatDate(row.fechaMax)}
+                      </td>
+                      <td className="px-4 py-3 text-right">{formatNumber(row.landingViews)}</td>
+                      <td className="px-4 py-3 text-right">{formatNumber(row.whatsappClicks)}</td>
+                      <td className="px-4 py-3 text-right">{formatPercent(row.conversionRate)}</td>
+                      <td className="px-4 py-3 text-right">{formatMoney(row.gastoTotal)}</td>
+                      <td className="px-4 py-3 text-right">{formatMoney(row.cpcPorVisita)}</td>
+                      <td className="px-4 py-3 text-right">{formatMoney(row.cpcPorClickWhatsapp)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
           </>
         )}
       </div>
@@ -348,6 +398,7 @@ function SpendModal({
             <input
               value={utmCampaign}
               onChange={(e) => setUtmCampaign(e.target.value)}
+              placeholder="internacional, nacional, combinados (opcional)"
               className="mt-1 w-full rounded bg-slate-800 px-3 py-2"
             />
           </div>

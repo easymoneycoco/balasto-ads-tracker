@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { CHANNELS } from "@/lib/channels";
+import { CAMPAIGNS, CAMPAIGNS_UTM_SOURCE, CAMPAIGNS_UTM_MEDIUM } from "@/lib/campaigns";
+
+function deriveMetrics(views: number, clicks: number, gastoTotal: number | null) {
+  return {
+    conversionRate: views > 0 ? clicks / views : null,
+    cpcPorVisita: gastoTotal !== null && views > 0 ? gastoTotal / views : null,
+    cpcPorClickWhatsapp: gastoTotal !== null && clicks > 0 ? gastoTotal / clicks : null,
+  };
+}
 
 function parseDate(value: string | null): string | null {
   if (!value) return null;
@@ -102,12 +111,10 @@ export async function GET(request: NextRequest) {
         utmMedium,
         landingViews: views,
         whatsappClicks: clicks,
-        conversionRate: views > 0 ? clicks / views : null,
         fechaMin: stats?.fechaMin ?? null,
         fechaMax: stats?.fechaMax ?? null,
         gastoTotal,
-        cpcPorVisita: gastoTotal !== null && views > 0 ? gastoTotal / views : null,
-        cpcPorClickWhatsapp: gastoTotal !== null && clicks > 0 ? gastoTotal / clicks : null,
+        ...deriveMetrics(views, clicks, gastoTotal),
       };
     }
 
@@ -119,6 +126,79 @@ export async function GET(request: NextRequest) {
         .filter((row) => !fixedKeys.has(channelKey(row.utm_source, row.utm_medium)))
         .map((row) => buildRow(null, row.utm_source, row.utm_medium)),
     ];
+
+    const porCampanaResult = await pool.query<{
+      utm_campaign: string | null;
+      landing_views: string;
+      whatsapp_clicks: string;
+      fecha_min: string;
+      fecha_max: string;
+    }>(
+      `SELECT
+         utm_campaign,
+         COUNT(*) FILTER (WHERE event_name = 'landing_view')::text AS landing_views,
+         COUNT(*) FILTER (WHERE event_name = 'whatsapp_click')::text AS whatsapp_clicks,
+         MIN(created_at) AS fecha_min,
+         MAX(created_at) AS fecha_max
+       FROM analytics_events
+       WHERE event_name IN ('landing_view', 'whatsapp_click')
+         AND utm_source = $3
+         AND utm_medium = $4
+         AND utm_campaign = ANY($5)
+         AND ($1::date IS NULL OR created_at >= $1::date)
+         AND ($2::date IS NULL OR created_at < ($2::date + INTERVAL '1 day'))
+       GROUP BY utm_campaign`,
+      [from, to, CAMPAIGNS_UTM_SOURCE, CAMPAIGNS_UTM_MEDIUM, CAMPAIGNS.map((c) => c.utmCampaign)]
+    );
+
+    const campaignSpendResult = await pool.query<{ utm_campaign: string; total: string }>(
+      `SELECT utm_campaign, SUM(amount)::text AS total
+       FROM ad_spend
+       WHERE utm_source = $3
+         AND utm_medium = $4
+         AND utm_campaign = ANY($5)
+         AND ($1::date IS NULL OR date_to >= $1::date)
+         AND ($2::date IS NULL OR date_from <= $2::date)
+       GROUP BY utm_campaign`,
+      [from, to, CAMPAIGNS_UTM_SOURCE, CAMPAIGNS_UTM_MEDIUM, CAMPAIGNS.map((c) => c.utmCampaign)]
+    );
+
+    const campaignEventMap = new Map<
+      string,
+      { views: number; clicks: number; fechaMin: string; fechaMax: string }
+    >();
+    for (const row of porCampanaResult.rows) {
+      if (!row.utm_campaign) continue;
+      campaignEventMap.set(row.utm_campaign, {
+        views: Number(row.landing_views),
+        clicks: Number(row.whatsapp_clicks),
+        fechaMin: row.fecha_min,
+        fechaMax: row.fecha_max,
+      });
+    }
+
+    const campaignSpendMap = new Map<string, number>();
+    for (const row of campaignSpendResult.rows) {
+      campaignSpendMap.set(row.utm_campaign, Number(row.total));
+    }
+
+    const porCampaña = CAMPAIGNS.map((campaign) => {
+      const stats = campaignEventMap.get(campaign.utmCampaign);
+      const views = stats?.views ?? 0;
+      const clicks = stats?.clicks ?? 0;
+      const gastoTotal = campaignSpendMap.get(campaign.utmCampaign) ?? null;
+
+      return {
+        label: campaign.label,
+        utmCampaign: campaign.utmCampaign,
+        landingViews: views,
+        whatsappClicks: clicks,
+        fechaMin: stats?.fechaMin ?? null,
+        fechaMax: stats?.fechaMax ?? null,
+        gastoTotal,
+        ...deriveMetrics(views, clicks, gastoTotal),
+      };
+    });
 
     const serieResult = await pool.query<{
       fecha: string;
@@ -156,6 +236,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       totales: { landingViews, whatsappClicks, conversionRate },
       porFuente,
+      porCampaña,
       serieDiaria,
     });
   } catch (err) {
