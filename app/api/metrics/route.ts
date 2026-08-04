@@ -46,8 +46,12 @@ export async function GET(request: NextRequest) {
     }
     const conversionRate = landingViews > 0 ? whatsappClicks / landingViews : null;
 
-    const calendlyResult = await pool.query<{ count: string }>(
-      `SELECT COUNT(*)::text AS count
+    const calendlyResult = await pool.query<{
+      count: string;
+      fecha_min: string | null;
+      fecha_max: string | null;
+    }>(
+      `SELECT COUNT(*)::text AS count, MIN(created_at) AS fecha_min, MAX(created_at) AS fecha_max
        FROM analytics_events
        WHERE event_name = 'calendly_click'
          AND ${BOT_USER_AGENT_FILTER}
@@ -56,6 +60,8 @@ export async function GET(request: NextRequest) {
       [from, to]
     );
     const calendlyClicks = Number(calendlyResult.rows[0]?.count ?? 0);
+    const calendlyFechaMin = calendlyResult.rows[0]?.fecha_min ?? null;
+    const calendlyFechaMax = calendlyResult.rows[0]?.fecha_max ?? null;
 
     const porFuenteResult = await pool.query<{
       utm_source: string | null;
@@ -138,8 +144,23 @@ export async function GET(request: NextRequest) {
 
     const fixedKeys = new Set(CHANNELS.map((c) => channelKey(c.utmSource, c.utmMedium)));
 
+    const calendlyRow = {
+      label: "Agendar llamada (Calendly)",
+      utmSource: "calendly",
+      utmMedium: "referral",
+      landingViews: null,
+      whatsappClicks: calendlyClicks,
+      fechaMin: calendlyFechaMin,
+      fechaMax: calendlyFechaMax,
+      gastoTotal: null,
+      conversionRate: null,
+      cpcPorVisita: null,
+      cpcPorClickWhatsapp: null,
+    };
+
     const porFuente = [
       ...CHANNELS.map((channel) => buildRow(channel.label, channel.utmSource, channel.utmMedium)),
+      calendlyRow,
       ...porFuenteResult.rows
         .filter((row) => !fixedKeys.has(channelKey(row.utm_source, row.utm_medium)))
         .map((row) => buildRow(null, row.utm_source, row.utm_medium)),

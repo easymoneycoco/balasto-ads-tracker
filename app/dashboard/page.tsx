@@ -7,7 +7,7 @@ type PorFuente = {
   label: string | null;
   utmSource: string | null;
   utmMedium: string | null;
-  landingViews: number;
+  landingViews: number | null;
   whatsappClicks: number;
   conversionRate: number | null;
   fechaMin: string | null;
@@ -44,6 +44,10 @@ type MetricsResponse = {
 
 function formatNumber(value: number): string {
   return value.toLocaleString("es-MX");
+}
+
+function formatNumberOrDash(value: number | null): string {
+  return value === null ? "—" : formatNumber(value);
 }
 
 function formatPercent(value: number | null): string {
@@ -163,11 +167,10 @@ export default function DashboardPage() {
 
         {data && !loading && (
           <>
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <StatCard label="Vistas de landing" value={formatNumber(data.totales.landingViews)} />
               <StatCard label="Clicks a WhatsApp" value={formatNumber(data.totales.whatsappClicks)} />
               <StatCard label="Tasa de conversión" value={formatPercent(data.totales.conversionRate)} />
-              <StatCard label="Clics a Calendly" value={formatNumber(data.totales.calendlyClicks)} />
             </section>
 
             <section className="overflow-x-auto rounded-lg bg-slate-900">
@@ -177,7 +180,12 @@ export default function DashboardPage() {
                     <th className="px-4 py-3">Canal</th>
                     <th className="px-4 py-3">Rango de fechas</th>
                     <th className="px-4 py-3 text-right">Vistas</th>
-                    <th className="px-4 py-3 text-right">Clicks WA</th>
+                    <th className="px-4 py-3 text-right">
+                      Clicks
+                      <div className="text-[10px] font-normal normal-case text-slate-500">
+                        WhatsApp / Calendly
+                      </div>
+                    </th>
                     <th className="px-4 py-3 text-right">Conversión</th>
                     <th className="px-4 py-3 text-right">Gasto</th>
                     <th className="px-4 py-3 text-right">CPC / visita</th>
@@ -207,7 +215,7 @@ export default function DashboardPage() {
                       <td className="px-4 py-3 text-slate-400">
                         {formatDate(row.fechaMin)} — {formatDate(row.fechaMax)}
                       </td>
-                      <td className="px-4 py-3 text-right">{formatNumber(row.landingViews)}</td>
+                      <td className="px-4 py-3 text-right">{formatNumberOrDash(row.landingViews)}</td>
                       <td className="px-4 py-3 text-right">{formatNumber(row.whatsappClicks)}</td>
                       <td className="px-4 py-3 text-right">{formatPercent(row.conversionRate)}</td>
                       <td className="px-4 py-3 text-right">{formatMoney(row.gastoTotal)}</td>
