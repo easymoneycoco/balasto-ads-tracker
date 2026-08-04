@@ -35,6 +35,7 @@ type MetricsResponse = {
     landingViews: number;
     whatsappClicks: number;
     conversionRate: number | null;
+    calendlyClicks: number;
   };
   porFuente: PorFuente[];
   porCampaña: PorCampaña[];
@@ -162,10 +163,11 @@ export default function DashboardPage() {
 
         {data && !loading && (
           <>
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-4">
               <StatCard label="Vistas de landing" value={formatNumber(data.totales.landingViews)} />
               <StatCard label="Clicks a WhatsApp" value={formatNumber(data.totales.whatsappClicks)} />
               <StatCard label="Tasa de conversión" value={formatPercent(data.totales.conversionRate)} />
+              <StatCard label="Clics a Calendly" value={formatNumber(data.totales.calendlyClicks)} />
             </section>
 
             <section className="overflow-x-auto rounded-lg bg-slate-900">

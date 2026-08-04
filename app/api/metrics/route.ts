@@ -3,6 +3,11 @@ import { pool } from "@/lib/db";
 import { CHANNELS } from "@/lib/channels";
 import { CAMPAIGNS, CAMPAIGNS_UTM_SOURCE, CAMPAIGNS_UTM_MEDIUM } from "@/lib/campaigns";
 
+const BOT_USER_AGENT_FILTER = `(
+  user_agent IS NULL
+  OR (user_agent NOT ILIKE '%facebookexternalhit%' AND user_agent NOT ILIKE '%meta-externalads%')
+)`;
+
 function deriveMetrics(views: number, clicks: number, gastoTotal: number | null) {
   return {
     conversionRate: views > 0 ? clicks / views : null,
@@ -26,6 +31,7 @@ export async function GET(request: NextRequest) {
       `SELECT event_name, COUNT(*)::text AS count
        FROM analytics_events
        WHERE event_name IN ('landing_view', 'whatsapp_click')
+         AND ${BOT_USER_AGENT_FILTER}
          AND ($1::date IS NULL OR created_at >= $1::date)
          AND ($2::date IS NULL OR created_at < ($2::date + INTERVAL '1 day'))
        GROUP BY event_name`,
@@ -39,6 +45,17 @@ export async function GET(request: NextRequest) {
       if (row.event_name === "whatsapp_click") whatsappClicks = Number(row.count);
     }
     const conversionRate = landingViews > 0 ? whatsappClicks / landingViews : null;
+
+    const calendlyResult = await pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
+       FROM analytics_events
+       WHERE event_name = 'calendly_click'
+         AND ${BOT_USER_AGENT_FILTER}
+         AND ($1::date IS NULL OR created_at >= $1::date)
+         AND ($2::date IS NULL OR created_at < ($2::date + INTERVAL '1 day'))`,
+      [from, to]
+    );
+    const calendlyClicks = Number(calendlyResult.rows[0]?.count ?? 0);
 
     const porFuenteResult = await pool.query<{
       utm_source: string | null;
@@ -57,6 +74,7 @@ export async function GET(request: NextRequest) {
          MAX(created_at) AS fecha_max
        FROM analytics_events
        WHERE event_name IN ('landing_view', 'whatsapp_click')
+         AND ${BOT_USER_AGENT_FILTER}
          AND ($1::date IS NULL OR created_at >= $1::date)
          AND ($2::date IS NULL OR created_at < ($2::date + INTERVAL '1 day'))
        GROUP BY utm_source, utm_medium
@@ -145,6 +163,7 @@ export async function GET(request: NextRequest) {
          AND utm_source = $3
          AND utm_medium = $4
          AND utm_campaign = ANY($5)
+         AND ${BOT_USER_AGENT_FILTER}
          AND ($1::date IS NULL OR created_at >= $1::date)
          AND ($2::date IS NULL OR created_at < ($2::date + INTERVAL '1 day'))
        GROUP BY utm_campaign`,
@@ -234,7 +253,7 @@ export async function GET(request: NextRequest) {
     }));
 
     return NextResponse.json({
-      totales: { landingViews, whatsappClicks, conversionRate },
+      totales: { landingViews, whatsappClicks, conversionRate, calendlyClicks },
       porFuente,
       porCampaña,
       serieDiaria,

@@ -27,6 +27,11 @@ export default function LinksPage() {
       label: `Meta Ads – ${campaign.label}`,
       url: origin ? `${origin}/${campaign.utmCampaign}` : null,
     })),
+    {
+      key: "agenda",
+      label: "Agendar llamada (Calendly)",
+      url: origin ? `${origin}/agenda` : null,
+    },
   ];
 
   async function handleCopy(url: string, key: string) {

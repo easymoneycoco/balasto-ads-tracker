@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 import { pool } from "@/lib/db";
-
-function hashIp(ip: string): string {
-  const salt = process.env.HASH_SALT ?? "";
-  return crypto.createHash("sha256").update(`${ip}${salt}`).digest("hex");
-}
+import { getClientIp, hashIp } from "@/lib/tracking";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,8 +11,7 @@ export async function POST(request: NextRequest) {
     const anonId = params.get("anon_id");
 
     if (eventName && anonId) {
-      const forwardedFor = request.headers.get("x-forwarded-for");
-      const ip = forwardedFor?.split(",")[0]?.trim() || null;
+      const ip = getClientIp(request);
 
       await pool.query(
         `INSERT INTO analytics_events
