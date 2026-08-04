@@ -241,6 +241,7 @@ export async function GET(request: NextRequest) {
        LEFT JOIN analytics_events
          ON analytics_events.created_at::date = days.fecha
          AND analytics_events.event_name IN ('landing_view', 'whatsapp_click')
+         AND ${BOT_USER_AGENT_FILTER}
        GROUP BY days.fecha
        ORDER BY days.fecha`,
       [from, to]
