@@ -20,7 +20,7 @@ type PorFuente = {
 type PorCampaña = {
   label: string;
   utmCampaign: string;
-  landingViews: number;
+  landingViews: number | null;
   whatsappClicks: number;
   conversionRate: number | null;
   fechaMin: string | null;
@@ -237,7 +237,12 @@ export default function DashboardPage() {
                     <th className="px-4 py-3">Campaña</th>
                     <th className="px-4 py-3">Rango de fechas</th>
                     <th className="px-4 py-3 text-right">Vistas</th>
-                    <th className="px-4 py-3 text-right">Clicks WA</th>
+                    <th className="px-4 py-3 text-right">
+                      Clicks
+                      <div className="text-[10px] font-normal normal-case text-slate-500">
+                        WhatsApp / Calendly
+                      </div>
+                    </th>
                     <th className="px-4 py-3 text-right">Conversión</th>
                     <th className="px-4 py-3 text-right">Gasto</th>
                     <th className="px-4 py-3 text-right">CPC / visita</th>
@@ -251,7 +256,7 @@ export default function DashboardPage() {
                       <td className="px-4 py-3 text-slate-400">
                         {formatDate(row.fechaMin)} — {formatDate(row.fechaMax)}
                       </td>
-                      <td className="px-4 py-3 text-right">{formatNumber(row.landingViews)}</td>
+                      <td className="px-4 py-3 text-right">{formatNumberOrDash(row.landingViews)}</td>
                       <td className="px-4 py-3 text-right">{formatNumber(row.whatsappClicks)}</td>
                       <td className="px-4 py-3 text-right">{formatPercent(row.conversionRate)}</td>
                       <td className="px-4 py-3 text-right">{formatMoney(row.gastoTotal)}</td>

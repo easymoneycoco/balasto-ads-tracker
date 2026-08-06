@@ -222,11 +222,61 @@ export async function GET(request: NextRequest) {
       campaignSpendMap.set(row.utm_campaign, Number(row.total));
     }
 
+    const calendlyByCampaignResult = await pool.query<{
+      utm_campaign: string;
+      count: string;
+      fecha_min: string | null;
+      fecha_max: string | null;
+    }>(
+      `SELECT utm_campaign, COUNT(*)::text AS count, MIN(created_at) AS fecha_min, MAX(created_at) AS fecha_max
+       FROM analytics_events
+       WHERE event_name = 'calendly_click'
+         AND utm_source = $3
+         AND utm_medium = $4
+         AND utm_campaign = ANY($5)
+         AND ${BOT_USER_AGENT_FILTER}
+         AND ($1::date IS NULL OR created_at >= $1::date)
+         AND ($2::date IS NULL OR created_at < ($2::date + INTERVAL '1 day'))
+       GROUP BY utm_campaign`,
+      [from, to, CAMPAIGNS_UTM_SOURCE, CAMPAIGNS_UTM_MEDIUM, CAMPAIGNS.map((c) => c.utmCampaign)]
+    );
+
+    const calendlyCampaignMap = new Map<
+      string,
+      { count: number; fechaMin: string | null; fechaMax: string | null }
+    >();
+    for (const row of calendlyByCampaignResult.rows) {
+      calendlyCampaignMap.set(row.utm_campaign, {
+        count: Number(row.count),
+        fechaMin: row.fecha_min,
+        fechaMax: row.fecha_max,
+      });
+    }
+
     const porCampaña = CAMPAIGNS.map((campaign) => {
+      const gastoTotal = campaignSpendMap.get(campaign.utmCampaign) ?? null;
+
+      if (campaign.directToCalendly) {
+        const stats = calendlyCampaignMap.get(campaign.utmCampaign);
+        const clicks = stats?.count ?? 0;
+
+        return {
+          label: campaign.label,
+          utmCampaign: campaign.utmCampaign,
+          landingViews: null,
+          whatsappClicks: clicks,
+          fechaMin: stats?.fechaMin ?? null,
+          fechaMax: stats?.fechaMax ?? null,
+          gastoTotal,
+          conversionRate: null,
+          cpcPorVisita: null,
+          cpcPorClickWhatsapp: gastoTotal !== null && clicks > 0 ? gastoTotal / clicks : null,
+        };
+      }
+
       const stats = campaignEventMap.get(campaign.utmCampaign);
       const views = stats?.views ?? 0;
       const clicks = stats?.clicks ?? 0;
-      const gastoTotal = campaignSpendMap.get(campaign.utmCampaign) ?? null;
 
       return {
         label: campaign.label,
